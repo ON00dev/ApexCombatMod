@@ -1,0 +1,5 @@
+# Line endings
+* text=auto
+
+# Gradle
+gradle/wrapper/gradle-wrapper.jar binary

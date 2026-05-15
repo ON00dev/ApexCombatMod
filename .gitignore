@@ -1,0 +1,30 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Pastas descompiladas (baixe do release)
+assets_decompiled/
+config_decompiled/
+base_decompiled/
+original_splits/
+extracted/
+build_work/
+dist/
+apk_final/
+
+# Arquivos grandes
+*.apk
+*.keystore
+*.zip
