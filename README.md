@@ -204,5 +204,5 @@ Para atualizar o dump:
 
 ## Licença
 
-[MIT]("/LICENSE")
+[MIT](/LICENSE)
  
