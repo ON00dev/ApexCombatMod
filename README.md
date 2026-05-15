@@ -139,7 +139,7 @@ Java_com_on00dev_apexcombatmod_Native_SetNovaFuncao(JNIEnv *env, jclass type, jb
 
 ### Download dos Arquivos
 
-Baixe os arquivos `.zip` do [release]("https://github.com/ON00dev/ApexCombatMod/releases/tag/data_workspace") e extraia-os na raiz do projeto:
+Baixe os arquivos `.zip` do [release](https://github.com/ON00dev/ApexCombatMod/releases/tag/data_workspace) e extraia-os na raiz do projeto:
 
 ```powershell
 # Após extrair, a estrutura deve ficar:
