@@ -1,6 +1,6 @@
 # ApexCombatMod
 
-**Mod Android para Apex Combat Online.**
+**Mod Android para Apex Combat Online, antigo Air Combat Online.**
 
 **Idioma:** Português (Brasil)
 
