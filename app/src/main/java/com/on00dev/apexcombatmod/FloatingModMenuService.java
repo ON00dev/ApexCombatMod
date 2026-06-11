@@ -10,6 +10,7 @@ import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.IBinder;
+import android.provider.Settings;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -31,6 +32,13 @@ public class FloatingModMenuService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
+
+        startForegroundService();
+
+        if (!Settings.canDrawOverlays(this)) {
+            stopSelf();
+            return;
+        }
         
         // Inicializa a lib nativa
         try {

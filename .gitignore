@@ -15,16 +15,19 @@
 local.properties
 
 # Pastas descompiladas (baixe do release)
-assets_decompiled/
-config_decompiled/
-base_decompiled/
-original_splits/
-extracted/
-build_work/
-dist/
-apk_final/
+assets_decompiled/*
+config_decompiled/*
+base_decompiled/*
+original_splits/*
+extracted/*
+build_work/*
+dist/*
+apk_final/*
 
 # Arquivos grandes
 *.apk
 *.keystore
 *.zip
+
+# Dumps (IL2CPP)
+*_dumped/

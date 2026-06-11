@@ -3,6 +3,8 @@ package com.on00dev.apexcombatmod;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Environment;
@@ -36,17 +38,60 @@ public class ModLoader {
         if (isTrialValid(context)) {
             try {
                 System.loadLibrary("apexcombatmod");
-                
-                Intent intent = new Intent();
-                intent.setClassName(context, "com.on00dev.apexcombatmod.FloatingModMenuService");
-                context.startService(intent);
+
+                if (!Settings.canDrawOverlays(context)) {
+                    SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+                    boolean alreadyRequested = prefs.getBoolean("overlay_requested", false);
+                    if (!alreadyRequested) {
+                        prefs.edit().putBoolean("overlay_requested", true).apply();
+                    }
+
+                    if (!alreadyRequested) {
+                        Handler uiHandler = new Handler(Looper.getMainLooper());
+                        uiHandler.post(() -> {
+                            Intent overlayIntent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    Uri.parse("package:" + context.getPackageName()));
+                            overlayIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                            try {
+                                context.startActivity(overlayIntent);
+                            } catch (Exception ignored) {
+                            }
+                            Toast.makeText(context, "Ative a permissao de sobreposicao para o Mod Menu.", Toast.LENGTH_LONG).show();
+                        });
+                    }
+                    return;
+                }
+
+                Handler uiHandler = new Handler(Looper.getMainLooper());
+                uiHandler.postDelayed(() -> {
+                    try {
+                        Intent intent = new Intent();
+                        intent.setClassName(context, "com.on00dev.apexcombatmod.FloatingModMenuService");
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            context.startForegroundService(intent);
+                        } else {
+                            context.startService(intent);
+                        }
+                    } catch (Exception e) {
+                        try {
+                            Toast.makeText(context, "Falha ao iniciar Mod Menu: " + e.getClass().getSimpleName(), Toast.LENGTH_LONG).show();
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }, 800);
                 
                 startTrialTimer(context);
                 
             } catch (UnsatisfiedLinkError e) {
-                // Silencioso
+                try {
+                    Toast.makeText(context, "Falha ao carregar lib do mod.", Toast.LENGTH_LONG).show();
+                } catch (Exception ignored) {
+                }
             } catch (Exception e) {
-                // Silencioso
+                try {
+                    Toast.makeText(context, "Falha ao iniciar mod: " + e.getClass().getSimpleName(), Toast.LENGTH_LONG).show();
+                } catch (Exception ignored) {
+                }
             }
         } else {
             // Silencioso
