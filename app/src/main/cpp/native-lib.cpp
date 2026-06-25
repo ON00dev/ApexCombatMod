@@ -21,80 +21,80 @@
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 
 // 5. Aimbot / FOV
-uintptr_t OFFSET_MISSILE_GET_LOCK_DISTANCE = 0x1C063E4; // MissileProperty.get_LockDistance
-uintptr_t OFFSET_MISSILE_GET_MAX_ROTATE_ANGLE = 0x1C06694; // MissileProperty.get_MaxRotateAngle
-uintptr_t OFFSET_MISSILE_GET_TRACE_ABILITY = 0x1C067E8; // MissileProperty.get_TraceAbility
+uintptr_t OFFSET_MISSILE_GET_LOCK_DISTANCE = 0x331E1CC; // MissileProperty.get_LockDistance
+uintptr_t OFFSET_MISSILE_GET_MAX_ROTATE_ANGLE = 0x332D964; // MissileProperty.get_MaxRotateAngle
+uintptr_t OFFSET_MISSILE_GET_TRACE_ABILITY = 0x332DAA8; // MissileProperty.get_TraceAbility
 
 // =============================================================================================
 // OFFSETS ATUALIZADOS (V22 - Hooked Hit Kill)
 // =============================================================================================
 
 // 1. God Mode & One Hit Kill
-uintptr_t OFFSET_APPLY_DAMAGE = 0x1BF77C0; // PlayerPlaneAction.ApplyDamage (Offline God Mode)
-uintptr_t OFFSET_UNIT_APPLY_DAMAGE = 0x1C031D8; // UnitActionBase.ApplyDamage (Offline God Mode)
-uintptr_t OFFSET_GET_GOD_MODE = 0x1C01704; // UnitActionBase.get_GodMode (Retornar 1)
-uintptr_t OFFSET_GET_HP_PROGRESS = 0x1C01DF0; // UnitActionBase.GetHpProgress (Retornar 1.0)
-uintptr_t OFFSET_MODIFY_DAMAGE = 0x1BF7628; // PlayerPlaneAction.ModifyDamage (Retornar 0.0)
+uintptr_t OFFSET_APPLY_DAMAGE = 0x33203BC; // PlayerPlaneAction.ApplyDamage (Offline God Mode)
+uintptr_t OFFSET_UNIT_APPLY_DAMAGE = 0x33204E8; // UnitActionBase.ApplyDamage (Offline God Mode)
+uintptr_t OFFSET_GET_GOD_MODE = 0x3324480; // UnitActionBase.get_GodMode (Retornar 1)
+uintptr_t OFFSET_GET_HP_PROGRESS = 0x332A034; // UnitActionBase.GetHpProgress (Retornar 1.0)
+uintptr_t OFFSET_MODIFY_DAMAGE = 0x332022C; // PlayerPlaneAction.ModifyDamage (Retornar 0.0)
 
 // 1.1 Hit Kill Aux (Patches)
-uintptr_t OFFSET_WEAPON_DAMAGE = 0x1C05D18; // MissileProperty.get_Damage
-uintptr_t OFFSET_CANNON_DAMAGE = 0x1C035D0; // CannonProperty.get_Damage
-uintptr_t OFFSET_CRITICAL_DAMAGE_RATE = 0x1C01398; // UnitActionBase.get_CriticalDamageRate
-uintptr_t OFFSET_CRITICAL_PROB = 0x1C01328; // UnitActionBase.get_CriticalProb
-uintptr_t OFFSET_BULLET_GET_DAMAGE = 0x1869168; // BulletMove.GetDamage (Return 99999.0)
-uintptr_t OFFSET_MISSILE_GET_DAMAGE = 0x1C866B4; // Missile.GetDamage (Return 99999.0)
-uintptr_t OFFSET_MISSILE_GET_RELOAD_TIME = 0x1C06D38; // MissileProperty.get_ReloadTime
-uintptr_t OFFSET_CANNON_GET_COLD_TIME = 0x1BFFFC8; // CannonProperty.get_ColdTime (Verify if correct)
+uintptr_t OFFSET_WEAPON_DAMAGE = 0x332D0F4; // MissileProperty.get_Damage
+uintptr_t OFFSET_CANNON_DAMAGE = 0x332B290; // CannonProperty.get_Damage
+uintptr_t OFFSET_CRITICAL_DAMAGE_RATE = 0x0; // UnitActionBase.get_CriticalDamageRate
+uintptr_t OFFSET_CRITICAL_PROB = 0x0; // UnitActionBase.get_CriticalProb
+uintptr_t OFFSET_BULLET_GET_DAMAGE = 0x30E9588; // BulletMove.GetDamage (Return 99999.0)
+uintptr_t OFFSET_MISSILE_GET_DAMAGE = 0x33B5AE4; // Missile.GetDamage (Return 99999.0)
+uintptr_t OFFSET_MISSILE_GET_RELOAD_TIME = 0x3322AD0; // MissileProperty.get_ReloadTime
+uintptr_t OFFSET_CANNON_GET_COLD_TIME = 0x331FCA4; // CannonProperty.get_ColdTime (Verify if correct)
 
 // 2. Hit Kill (Hooked)
-uintptr_t OFFSET_UNITMANAGER_UPDATE = 0x16C2A24;
-uintptr_t OFFSET_UNITMANAGER_GET_ISM_YSELF = 0x16C22B4;
-uintptr_t OFFSET_UNITMANAGER_GET_IS_CURRENT_PLAYER = 0x16C2414; // UnitManager.get_IsCurrentPlayer
-uintptr_t OFFSET_UNITMANAGER_GET_HASHCODE = 0x16C176C;
-uintptr_t OFFSET_UNITMANAGER_GET_IS_INVINCIBLE = 0x16C1EFC; // UnitManager.get_IsInvincible
+uintptr_t OFFSET_UNITMANAGER_UPDATE = 0x2DFF2FC;
+uintptr_t OFFSET_UNITMANAGER_GET_ISM_YSELF = 0x2DFEBE4;
+uintptr_t OFFSET_UNITMANAGER_GET_IS_CURRENT_PLAYER = 0x2DFED34; // UnitManager.get_IsCurrentPlayer
+uintptr_t OFFSET_UNITMANAGER_GET_HASHCODE = 0x2DFE14C;
+uintptr_t OFFSET_UNITMANAGER_GET_IS_INVINCIBLE = 0x2DFE864; // UnitManager.get_IsInvincible
 
-uintptr_t OFFSET_UNITACTIONBASE_APPLYDAMAGE = 0x1C031D8;
-uintptr_t OFFSET_CLOUDCONTAINER_APPLYDAMAGEBYLUA = 0x1D7DA88; // CloudContainer.ApplyDamageByLua
-uintptr_t OFFSET_PHOTON_PLUGIN_EVENTCALL = 0x1780D3C; // PhotonPlugin.EventCall
-uintptr_t OFFSET_PHOTON_PLUGIN_APPLYDAMAGE = 0x178285C; // PhotonPlugin.ApplyDamage (Dictionary)
-uintptr_t OFFSET_PHOTON_CLIENT_RAISEEVENT = 0x170FAE0; // PhotonClient.RaiseEvent
+uintptr_t OFFSET_UNITACTIONBASE_APPLYDAMAGE = 0x33204E8;
+uintptr_t OFFSET_CLOUDCONTAINER_APPLYDAMAGEBYLUA = 0x3469380; // CloudContainer.ApplyDamageByLua
+uintptr_t OFFSET_PHOTON_PLUGIN_EVENTCALL = 0x2EBDBA8; // PhotonPlugin.EventCall
+uintptr_t OFFSET_PHOTON_PLUGIN_APPLYDAMAGE = 0x2EBF93C; // PhotonPlugin.ApplyDamage (Dictionary)
+uintptr_t OFFSET_PHOTON_CLIENT_RAISEEVENT = 0x2E4C7EC; // PhotonClient.RaiseEvent
 
 // 3. Energia
-uintptr_t OFFSET_REDUCE_ENERGY = 0x1BF5D58; // PlayerPlaneAction.ReduceEnergy
-uintptr_t OFFSET_GET_ENERGY_PROGRESS = 0x1BF5958; // PlayerPlaneAction.GetEnergyProgress (Float 1.0)
-uintptr_t OFFSET_HAS_ENERGY = 0x1BF5BEC; // PlayerPlaneAction.HasEnergy (True)
-uintptr_t OFFSET_ENOUGH_ENERGY_SPECIAL = 0x1BFC0E4; // PlayerPlaneAction.EnoughEnergyToSpecialMove (True)
-uintptr_t OFFSET_ENOUGH_ENERGY_CLIMB = 0x1BFBD5C; // PlayerPlaneAction.EnoughEnergyToClimbout (True)
-uintptr_t OFFSET_ENOUGH_ENERGY_BACK = 0x1BFBF8C; // PlayerPlaneAction.EnoughEnergyToBackRoll (True)
-uintptr_t OFFSET_ENOUGH_ENERGY_HORI = 0x1BFC038; // PlayerPlaneAction.EnoughEnergyToHoriRoll (True)
-uintptr_t OFFSET_ENOUGH_ENERGY_NOT_SPECIAL = 0x1BFBE08; // PlayerPlaneAction.EnoughEnergyAndNotInSpecialMove (True)
+uintptr_t OFFSET_REDUCE_ENERGY = 0x331E648; // PlayerPlaneAction.ReduceEnergy
+uintptr_t OFFSET_GET_ENERGY_PROGRESS = 0x331E268; // PlayerPlaneAction.GetEnergyProgress (Float 1.0)
+uintptr_t OFFSET_HAS_ENERGY = 0x331E4EC; // PlayerPlaneAction.HasEnergy (True)
+uintptr_t OFFSET_ENOUGH_ENERGY_SPECIAL = 0x3325558; // PlayerPlaneAction.EnoughEnergyToSpecialMove (True)
+uintptr_t OFFSET_ENOUGH_ENERGY_CLIMB = 0x33251C0; // PlayerPlaneAction.EnoughEnergyToClimbout (True)
+uintptr_t OFFSET_ENOUGH_ENERGY_BACK = 0x3325410; // PlayerPlaneAction.EnoughEnergyToBackRoll (True)
+uintptr_t OFFSET_ENOUGH_ENERGY_HORI = 0x33254B4; // PlayerPlaneAction.EnoughEnergyToHoriRoll (True)
+uintptr_t OFFSET_ENOUGH_ENERGY_NOT_SPECIAL = 0x3325264; // PlayerPlaneAction.EnoughEnergyAndNotInSpecialMove (True)
 
 // 3.1 Velocidade do Aviao
-uintptr_t OFFSET_PLAYERPLANEACTION_UPDATE_FLYCONTROLLER_PARAMS = 0x1BF4E8C; // PlayerPlaneAction.UpdateFlyControllerParams
-uintptr_t OFFSET_PLAYERPLANEACTION_SETUP_FLYCONTROLLER = 0x1BF5454; // PlayerPlaneAction.SetUpFlyController
-uintptr_t OFFSET_PLANEPROPERTY_GET_MAX_SPEED = 0x1C08348; // PlaneProperty.get_MaxSpeed
-uintptr_t OFFSET_PLANEPROPERTY_SET_MAX_SPEED = 0x1C083EC; // PlaneProperty.set_MaxSpeed
-uintptr_t OFFSET_PLANEPROPERTY_GET_NORMAL_SPEED = 0x1C084A4; // PlaneProperty.get_NormalSpeed
-uintptr_t OFFSET_PLANEPROPERTY_SET_NORMAL_SPEED = 0x1C08548; // PlaneProperty.set_NormalSpeed
-uintptr_t OFFSET_PLANEPROPERTY_GET_MIN_SPEED = 0x1C08600; // PlaneProperty.get_MinSpeed
-uintptr_t OFFSET_PLANEPROPERTY_SET_MIN_SPEED = 0x1C086A4; // PlaneProperty.set_MinSpeed
+uintptr_t OFFSET_PLAYERPLANEACTION_UPDATE_FLYCONTROLLER_PARAMS = 0x331D298; // PlayerPlaneAction.UpdateFlyControllerParams
+uintptr_t OFFSET_PLAYERPLANEACTION_SETUP_FLYCONTROLLER = 0x331DC64; // PlayerPlaneAction.SetUpFlyController
+uintptr_t OFFSET_PLANEPROPERTY_GET_MAX_SPEED = 0x332F004; // PlaneProperty.get_MaxSpeed
+uintptr_t OFFSET_PLANEPROPERTY_SET_MAX_SPEED = 0x332F0A0; // PlaneProperty.set_MaxSpeed
+uintptr_t OFFSET_PLANEPROPERTY_GET_NORMAL_SPEED = 0x332F150; // PlaneProperty.get_NormalSpeed
+uintptr_t OFFSET_PLANEPROPERTY_SET_NORMAL_SPEED = 0x332F1EC; // PlaneProperty.set_NormalSpeed
+uintptr_t OFFSET_PLANEPROPERTY_GET_MIN_SPEED = 0x332F29C; // PlaneProperty.get_MinSpeed
+uintptr_t OFFSET_PLANEPROPERTY_SET_MIN_SPEED = 0x332F338; // PlaneProperty.set_MinSpeed
 
 // 3. Munição Infinita
-uintptr_t OFFSET_DO_CONSUME_WEAPON = 0x1BF709C; // PlayerPlaneAction.DoConsumeWeapon (Block)
-uintptr_t OFFSET_CANNON_GET_COUNT = 0x1C03C9C; // CannonProperty.get_Count (Return 999)
-uintptr_t OFFSET_MISSILE_GET_COUNT = 0x1C06A90; // MissileProperty.get_Count (Return 999)
-uintptr_t OFFSET_IS_MISSILE_READY = 0x1BF9A40; // PlayerPlaneAction.get_IsMissileReady (True)
-uintptr_t OFFSET_CHECK_RELOAD_AIR_MISSILE_IDX = 0x1BF9ACC; // PlayerPlaneAction.CheckReloadAirMissileIdx (Force Return 0, *isLeft=true)
-uintptr_t OFFSET_INTERNAL_FIRE_MISSILE = 0x1BFA0D4; // PlayerPlaneAction.InternalFireMissile
-uintptr_t OFFSET_INTERNAL_FIRE_MISSILE_WITH_AIR = 0x1BF8EB8; // PlayerPlaneAction.InternalFireMissileWithAirMissile
+uintptr_t OFFSET_DO_CONSUME_WEAPON = 0x331FAA4; // PlayerPlaneAction.DoConsumeWeapon (Block)
+uintptr_t OFFSET_CANNON_GET_COUNT = 0x331FB58; // CannonProperty.get_Count (Return 999)
+uintptr_t OFFSET_MISSILE_GET_COUNT = 0x3321F94; // MissileProperty.get_Count (Return 999)
+uintptr_t OFFSET_IS_MISSILE_READY = 0x3322C14; // PlayerPlaneAction.get_IsMissileReady (True)
+uintptr_t OFFSET_CHECK_RELOAD_AIR_MISSILE_IDX = 0x3322C98; // PlayerPlaneAction.CheckReloadAirMissileIdx (Force Return 0, *isLeft=true)
+uintptr_t OFFSET_INTERNAL_FIRE_MISSILE = 0x3323300; // PlayerPlaneAction.InternalFireMissile
+uintptr_t OFFSET_INTERNAL_FIRE_MISSILE_WITH_AIR = 0x332202C; // PlayerPlaneAction.InternalFireMissileWithAirMissile
 
 // 4. Auto Dodge / Ignore Hit
-uintptr_t OFFSET_MISSILE_TRACE_CAN_HIT = 0x1C85EAC; // MissileTrace.<OnTriggerEnter>g__CanHit|49_1
-uintptr_t OFFSET_BULLET_MOVE_CAN_HIT = 0x1868888; // BulletMove.CanHit
+uintptr_t OFFSET_MISSILE_TRACE_CAN_HIT = 0x33B52D8; // MissileTrace.<OnTriggerEnter>g__CanHit|49_1
+uintptr_t OFFSET_BULLET_MOVE_CAN_HIT = 0x30E8CB8; // BulletMove.CanHit
 
 // 5. Moedas / Currency
-uintptr_t OFFSET_GET_GOLD = 0x1DC4714; // UserProfile.get_Gold
-uintptr_t OFFSET_GET_DIAMOND = 0x1DC47B0; // UserProfile.get_Diamond
+uintptr_t OFFSET_GET_GOLD = 0x3499920; // UserProfile.get_Gold
+uintptr_t OFFSET_GET_DIAMOND = 0x34999B4; // UserProfile.get_Diamond
 
 // =============================================================================================
 
