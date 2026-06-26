@@ -39,10 +39,10 @@ uintptr_t OFFSET_MODIFY_DAMAGE = 0x332022C; // PlayerPlaneAction.ModifyDamage (R
 // 1.1 Hit Kill Aux (Patches)
 uintptr_t OFFSET_WEAPON_DAMAGE = 0x332D0F4; // MissileProperty.get_Damage
 uintptr_t OFFSET_CANNON_DAMAGE = 0x332B290; // CannonProperty.get_Damage
-uintptr_t OFFSET_CRITICAL_DAMAGE_RATE = 0x0; // UnitActionBase.get_CriticalDamageRate
-uintptr_t OFFSET_CRITICAL_PROB = 0x0; // UnitActionBase.get_CriticalProb
+uintptr_t OFFSET_CRITICAL_DAMAGE_RATE = 0x341179C; // PlaneCommonAttrCfgData.get_CriticalStrike
+uintptr_t OFFSET_CRITICAL_PROB = 0x332DBEC; // MissileProperty.get_X2DamageProbability
 uintptr_t OFFSET_BULLET_GET_DAMAGE = 0x30E9588; // BulletMove.GetDamage (Return 99999.0)
-uintptr_t OFFSET_MISSILE_GET_DAMAGE = 0x33B5AE4; // Missile.GetDamage (Return 99999.0)
+uintptr_t OFFSET_MISSILE_GET_DAMAGE = 0x33B5AE4; // MissileTrace.GetDamage (Signature with out float critMultiplier)
 uintptr_t OFFSET_MISSILE_GET_RELOAD_TIME = 0x3322AD0; // MissileProperty.get_ReloadTime
 uintptr_t OFFSET_CANNON_GET_COLD_TIME = 0x331FCA4; // CannonProperty.get_ColdTime (Verify if correct)
 
@@ -137,6 +137,7 @@ typedef void (*Func_FloatSetter)(void* _this, float value);
 typedef float (*Func_GetReloadTime)(void* _this);
 typedef float (*Func_GetColdTime)(void* _this);
 typedef bool (*Func_MissileCanHit)(void* _this, void* defender);
+typedef float (*Func_MissileTraceGetDamage)(void* _this, Vector3 missileForward, Vector3 targetForward, void* target, float* critMultiplier);
 typedef void* (*Func_GetComponent)(void* _this, void* type);
 Func_GetIsCurrentPlayer get_IsCurrentPlayer = nullptr;
 Func_GetHashCode get_HashCode = nullptr;
@@ -152,6 +153,7 @@ Func_GetReloadTime orig_Missile_GetReloadTime = nullptr;
 Func_GetColdTime orig_Cannon_GetColdTime = nullptr;
 Func_MissileCanHit orig_MissileTrace_CanHit = nullptr;
 Func_MissileCanHit orig_BulletMove_CanHit = nullptr;
+Func_MissileTraceGetDamage orig_MissileTrace_GetDamage = nullptr;
 Func_GetIsInvincible orig_UnitManager_GetIsInvincible = nullptr;
 Func_VoidInstance orig_PlayerPlaneAction_UpdateFlyControllerParams = nullptr;
 Func_VoidInstance orig_PlayerPlaneAction_SetUpFlyController = nullptr;
@@ -161,18 +163,24 @@ Func_FloatGetter planeProperty_GetNormalSpeed = nullptr;
 Func_FloatSetter planeProperty_SetNormalSpeed = nullptr;
 Func_FloatGetter planeProperty_GetMinSpeed = nullptr;
 Func_FloatSetter planeProperty_SetMinSpeed = nullptr;
+Func_FloatGetter missileProperty_GetDamage = nullptr;
 
 // ... Variáveis de Controle ...
 int g_MyHashCode = 0;
 bool isHitKillEnabled = false;
+bool isRapidFireEnabled = false;
 bool isAutoDodgeEnabled = false;
 bool isMissileFovEnabled = false;
 bool g_MissileToggle = false;
 int g_FakeMissileIdx = 1000;
 bool g_PlaneSpeedHackEnabled = false;
 int g_PlaneSpeedMultiplier = 2;
-constexpr uintptr_t OFFSET_PLANEACTIONBASE_PLANEPROPERTY_FIELD = 0xD8;
+constexpr uintptr_t OFFSET_PLANEACTIONBASE_PLANEPROPERTY_FIELD = 0xE0;
 void* g_CurrentPlayerPlaneAction = nullptr;
+
+constexpr uintptr_t OFFSET_MISSILETRACE_MISSILEPROPERTY_FIELD = 0x40;
+constexpr uintptr_t OFFSET_MISSILETRACE_ATTACKER_HASHCODE_FIELD = 0x60;
+constexpr uintptr_t OFFSET_MISSILETRACE_CAN_REPORT_DAMAGE_FIELD = 0x78;
 
 struct PlaneSpeedBackup {
     float maxSpeed;
@@ -186,7 +194,7 @@ std::map<void*, PlaneSpeedBackup> g_PlaneSpeedBackups;
 // ... (previous hooks) ...
 
 void hook_InternalFireMissile(void* _this, int missileType, void* missileProperty, void* missileTarget, bool isLastMissile, int missileIdx) {
-    if (isHitKillEnabled) {
+    if (isRapidFireEnabled) {
         // V30: Fake Missile Idx para gerar fireIds únicos e forçar o servidor a aceitar danos separados.
         // O jogo usa o missileIdx para calcular o FireId (normalmente 0, 1, 2, 3...)
         // Vamos incrementar para que cada míssil seja "único"
@@ -200,7 +208,7 @@ void hook_InternalFireMissile(void* _this, int missileType, void* missilePropert
 }
 
 int hook_CheckReloadAirMissileIdx(void* _this, bool* isLeft) {
-    if (isHitKillEnabled) {
+    if (isRapidFireEnabled) {
         // V33: Player-only Rapid Fire check
         // Se a função não nos dá IsMyself fácil, usamos o hack de forçar true apenas quando
         // não usamos o patch global de ReloadTime. A função CheckReloadAirMissileIdx é 
@@ -281,6 +289,39 @@ bool hook_BulletMove_CanHit(void* _this, void* defender) {
     }
     if (orig_BulletMove_CanHit) return orig_BulletMove_CanHit(_this, defender);
     return true;
+}
+
+float hook_MissileTrace_GetDamage(void* _this, Vector3 missileForward, Vector3 targetForward, void* target, float* critMultiplier) {
+    float damage = 0.0f;
+    if (orig_MissileTrace_GetDamage) {
+        damage = orig_MissileTrace_GetDamage(_this, missileForward, targetForward, target, critMultiplier);
+    }
+
+    if (!isRapidFireEnabled || _this == nullptr || g_MyHashCode == 0) {
+        return damage;
+    }
+
+    int attackerHashCode = *(int*)((uintptr_t)_this + OFFSET_MISSILETRACE_ATTACKER_HASHCODE_FIELD);
+    if (attackerHashCode != g_MyHashCode) {
+        return damage;
+    }
+
+    if (critMultiplier != nullptr && *critMultiplier <= 0.0f) {
+        *critMultiplier = 1.0f;
+    }
+    *(bool*)((uintptr_t)_this + OFFSET_MISSILETRACE_CAN_REPORT_DAMAGE_FIELD) = true;
+
+    if (damage <= 0.0f) {
+        void* missileProperty = *(void**)((uintptr_t)_this + OFFSET_MISSILETRACE_MISSILEPROPERTY_FIELD);
+        if (missileProperty != nullptr && missileProperty_GetDamage != nullptr) {
+            float fallbackDamage = missileProperty_GetDamage(missileProperty);
+            if (fallbackDamage > 0.0f) {
+                return fallbackDamage;
+            }
+        }
+    }
+
+    return damage;
 }
 
 void hook_ApplyDamage(void* _this, int attackerHashCode, float damage, void* damageSource, float* damageReduce) {
@@ -396,6 +437,7 @@ void init_hooks(uintptr_t base) {
     planeProperty_SetNormalSpeed = (Func_FloatSetter)(base + OFFSET_PLANEPROPERTY_SET_NORMAL_SPEED);
     planeProperty_GetMinSpeed = (Func_FloatGetter)(base + OFFSET_PLANEPROPERTY_GET_MIN_SPEED);
     planeProperty_SetMinSpeed = (Func_FloatSetter)(base + OFFSET_PLANEPROPERTY_SET_MIN_SPEED);
+    missileProperty_GetDamage = (Func_FloatGetter)(base + OFFSET_WEAPON_DAMAGE);
     
     A64HookFunction((void*)(base + OFFSET_UNITMANAGER_UPDATE), (void*)hook_UnitManager_Update, (void**)&orig_UnitManager_Update);
     A64HookFunction((void*)(base + OFFSET_UNITACTIONBASE_APPLYDAMAGE), (void*)hook_ApplyDamage, (void**)&orig_ApplyDamage);
@@ -404,6 +446,7 @@ void init_hooks(uintptr_t base) {
     A64HookFunction((void*)(base + OFFSET_CHECK_RELOAD_AIR_MISSILE_IDX), (void*)hook_CheckReloadAirMissileIdx, (void**)&orig_CheckReloadAirMissileIdx);
     A64HookFunction((void*)(base + OFFSET_INTERNAL_FIRE_MISSILE), (void*)hook_InternalFireMissile, (void**)&orig_InternalFireMissile);
     A64HookFunction((void*)(base + OFFSET_MISSILE_TRACE_CAN_HIT), (void*)hook_MissileTrace_CanHit, (void**)&orig_MissileTrace_CanHit);
+    A64HookFunction((void*)(base + OFFSET_MISSILE_GET_DAMAGE), (void*)hook_MissileTrace_GetDamage, (void**)&orig_MissileTrace_GetDamage);
     A64HookFunction((void*)(base + OFFSET_BULLET_MOVE_CAN_HIT), (void*)hook_BulletMove_CanHit, (void**)&orig_BulletMove_CanHit);
     A64HookFunction((void*)(base + OFFSET_UNITMANAGER_GET_IS_INVINCIBLE), (void*)hook_UnitManager_GetIsInvincible, (void**)&orig_UnitManager_GetIsInvincible);
     A64HookFunction((void*)(base + OFFSET_PLAYERPLANEACTION_UPDATE_FLYCONTROLLER_PARAMS), (void*)hook_PlayerPlaneAction_UpdateFlyControllerParams, (void**)&orig_PlayerPlaneAction_UpdateFlyControllerParams);
@@ -568,21 +611,25 @@ MemoryPatch patchAimbotTrace("AimbotTrace", OFFSET_MISSILE_GET_TRACE_ABILITY);
 // --- JNI ---
 
 uintptr_t get_libBase(const char* libName) {
-    FILE *fp;
-    uintptr_t addr = 0;
-    char filename[32], buffer[1024];
-    snprintf(filename, sizeof(filename), "/proc/self/maps");
-    fp = fopen(filename, "rt");
-    if (fp != NULL) {
-        while (fgets(buffer, sizeof(buffer), fp)) {
-            if (strstr(buffer, libName)) {
-                addr = (uintptr_t)strtoul(buffer, NULL, 16);
-                break;
+    FILE* fp = fopen("/proc/self/maps", "rt");
+    if (fp == nullptr) return 0;
+
+    uintptr_t bestBase = 0;
+    char line[1024];
+    while (fgets(line, sizeof(line), fp)) {
+        if (strstr(line, libName) == nullptr) continue;
+
+        uintptr_t start = 0;
+        uintptr_t fileOffset = 0;
+        if (sscanf(line, "%lx-%*lx %*4s %lx %*5s %*lu %*s", &start, &fileOffset) == 2) {
+            uintptr_t baseCandidate = start - fileOffset;
+            if (bestBase == 0 || baseCandidate < bestBase) {
+                bestBase = baseCandidate;
             }
         }
-        fclose(fp);
     }
-    return addr;
+    fclose(fp);
+    return bestBase;
 }
 
 void hack_thread() {
@@ -619,18 +666,10 @@ Java_com_on00dev_apexcombatmod_Native_SetGodMode(JNIEnv *env, jclass type, jbool
 extern "C" JNIEXPORT void JNICALL
 Java_com_on00dev_apexcombatmod_Native_SetGodModeOnline(JNIEnv *env, jclass type, jboolean isEnabled) {
     // V33: Rapid Fire corrigido para afetar APENAS o jogador
-    isHitKillEnabled = isEnabled;
+    isRapidFireEnabled = isEnabled;
     if (libIl2CppBase == 0) return;
     
     if (isEnabled) {
-        // Ativa Patches de Dano/Crítico para reforçar
-        patchCannonDamage.ApplyFloat99999(libIl2CppBase);
-        patchMissileDamage.ApplyFloat99999(libIl2CppBase);
-        patchCriticalRate.ApplyFloat99999(libIl2CppBase);
-        patchCriticalProb.ApplyFloat1(libIl2CppBase); // 100% Crítico
-        patchBulletGetDamage.ApplyFloat99999(libIl2CppBase);
-        patchMissileGetDamage.ApplyFloat99999(libIl2CppBase);
-        
         // V33: Removido os patches globais de ReloadTime e ColdTime
         // para que inimigos online e offline não atirem rápido.
         // O Rapid Fire agora depende 100% dos hooks em CheckReloadAirMissileIdx
@@ -640,20 +679,13 @@ Java_com_on00dev_apexcombatmod_Native_SetGodModeOnline(JNIEnv *env, jclass type,
         patchMissileCount.ApplyInt999(libIl2CppBase);
         patchMissileReady.ApplyTrue(libIl2CppBase);
     } else {
-        patchCannonDamage.Restore();
-        patchMissileDamage.Restore();
-        patchCriticalRate.Restore();
-        patchCriticalProb.Restore();
-        patchBulletGetDamage.Restore();
-        patchMissileGetDamage.Restore();
-        
         patchConsumeWeapon.Restore();
         patchCannonCount.Restore();
         patchMissileCount.Restore();
         patchMissileReady.Restore();
     }
     
-    LOGI("[MOD] Hit Kill + Rapid Fire (Player Only) + Munição: %s", isEnabled ? "ON" : "OFF");
+    LOGI("[MOD] Rapid Fire (Player Only) + Munição: %s", isEnabled ? "ON" : "OFF");
 }
 
 extern "C" JNIEXPORT void JNICALL

@@ -15,6 +15,7 @@
 local.properties
 
 # Pastas descompiladas (baixe do release)
+.trae/
 assets_decompiled/*
 config_decompiled/*
 base_decompiled/*
