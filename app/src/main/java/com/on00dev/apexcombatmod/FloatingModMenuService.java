@@ -189,12 +189,12 @@ public class FloatingModMenuService extends Service {
         Native.SetPlaneSpeedMultiplier(planeSpeedMultiplier[0]);
 
         // Switch: Hit Kill
-        Switch swHitKill = createSwitch("Hit Kill (Rapid Fire)");
+        Switch swHitKill = createSwitch("Rapid Fire");
         swHitKill.setOnCheckedChangeListener((buttonView, isChecked) -> Native.SetGodModeOnline(isChecked));
         menuLayout.addView(swHitKill);
 
         // Switch: Auto Dodge
-        Switch swAutoDodge = createSwitch("Auto Dodge (God Mode)");
+        Switch swAutoDodge = createSwitch("Auto Dodge (GodMode Online)");
         swAutoDodge.setOnCheckedChangeListener((buttonView, isChecked) -> Native.SetAutoDodge(isChecked));
         menuLayout.addView(swAutoDodge);
         
