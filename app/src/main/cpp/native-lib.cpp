@@ -72,7 +72,6 @@ uintptr_t OFFSET_ENOUGH_ENERGY_HORI = 0x33254B4; // PlayerPlaneAction.EnoughEner
 uintptr_t OFFSET_ENOUGH_ENERGY_NOT_SPECIAL = 0x3325264; // PlayerPlaneAction.EnoughEnergyAndNotInSpecialMove (True)
 
 // 3.1 Velocidade do Aviao
-uintptr_t OFFSET_PLAYERPLANEACTION_UPDATE = 0x331BFB0; // PlayerPlaneAction.Update
 uintptr_t OFFSET_PLAYERPLANEACTION_UPDATE_FLYCONTROLLER_PARAMS = 0x331D298; // PlayerPlaneAction.UpdateFlyControllerParams
 uintptr_t OFFSET_PLAYERPLANEACTION_SETUP_FLYCONTROLLER = 0x331DC64; // PlayerPlaneAction.SetUpFlyController
 uintptr_t OFFSET_PLAYERPLANEACTION_RELOAD_MISSILE = 0x331CD54; // PlayerPlaneAction.ReloadMissile
@@ -187,8 +186,6 @@ Func_FloatGetter missileProperty_GetDamage = nullptr;
 int g_MyHashCode = 0;
 bool isHitKillEnabled = false;
 std::atomic<bool> isRapidFireEnabled{false};
-std::atomic<int> g_RapidFireToggleSerial{0};
-int g_RapidFireHandledToggleSerial = 0;
 bool isAutoDodgeEnabled = false;
 bool isMissileFovEnabled = false;
 bool g_MissileToggle = false;
@@ -229,14 +226,6 @@ static inline bool is_CurrentPlayerPlaneAction(void* planeAction) {
     void* unitManager = get_UnitManager_FromAction(planeAction);
     if (unitManager == nullptr) return false;
     return get_HashCode(unitManager) == g_MyHashCode;
-}
-
-static inline void reset_MissileFireTimes(void* planeAction) {
-    if (planeAction == nullptr) return;
-    *(float*)((uintptr_t)planeAction + OFFSET_PLANEACTIONBASE_LEFT_MISSILE_FIRE_TIME_FIELD) = 0.0f;
-    *(float*)((uintptr_t)planeAction + OFFSET_PLANEACTIONBASE_RIGHT_MISSILE_FIRE_TIME_FIELD) = 0.0f;
-    *(float*)((uintptr_t)planeAction + OFFSET_PLANEACTIONBASE_LEFT_MISSILE_GR_FIRE_TIME_FIELD) = 0.0f;
-    *(float*)((uintptr_t)planeAction + OFFSET_PLANEACTIONBASE_RIGHT_MISSILE_GR_FIRE_TIME_FIELD) = 0.0f;
 }
 
 static inline void reset_OffensiveFireIds(void* planeAction) {
@@ -311,21 +300,9 @@ void hook_InternalFireMissile(void* _this, int missileType, void* missilePropert
 
 int hook_CheckReloadAirMissileIdx(void* _this, bool* isLeft) {
     if (isRapidFireEnabled.load(std::memory_order_relaxed) && is_CurrentPlayerPlaneAction(_this)) {
-        bool localIsLeft = false;
-        bool* outIsLeft = (isLeft != nullptr) ? isLeft : &localIsLeft;
-
-        int idx = -1;
         if (orig_CheckReloadAirMissileIdx) {
-            idx = orig_CheckReloadAirMissileIdx(_this, outIsLeft);
+            return orig_CheckReloadAirMissileIdx(_this, isLeft);
         }
-
-        if (idx < 0) {
-            idx = g_FakeMissileIdx++;
-        } else {
-            if (g_FakeMissileIdx <= idx) g_FakeMissileIdx = idx + 1;
-        }
-
-        return idx;
     }
     if (orig_CheckReloadAirMissileIdx) return orig_CheckReloadAirMissileIdx(_this, isLeft);
     return -1;
@@ -398,32 +375,6 @@ void hook_UnitManager_Update(void* _this) {
     if (orig_UnitManager_Update) orig_UnitManager_Update(_this);
 }
 
-void hook_PlayerPlaneAction_Update(void* _this) {
-    if (is_CurrentPlayerPlaneAction(_this)) {
-        int currentSerial = g_RapidFireToggleSerial.load(std::memory_order_relaxed);
-        if (g_RapidFireHandledToggleSerial != currentSerial) {
-            g_RapidFireHandledToggleSerial = currentSerial;
-            reset_OffensiveFireIds(_this);
-            g_FakeMissileIdx = 1000;
-            g_FakeMissileFireId = 1000;
-        }
-
-        if (isRapidFireEnabled.load(std::memory_order_relaxed)) {
-            g_RapidFireFrameId++;
-            refresh_RapidFireFrameState();
-            reset_MissileFireTimes(_this);
-        }
-    }
-
-    if (orig_PlayerPlaneAction_Update) {
-        orig_PlayerPlaneAction_Update(_this);
-    }
-
-    if (isRapidFireEnabled.load(std::memory_order_relaxed) && is_CurrentPlayerPlaneAction(_this)) {
-        reset_MissileFireTimes(_this);
-    }
-}
-
 bool hook_UnitManager_GetIsInvincible(void* _this) {
     if (isAutoDodgeEnabled && get_HashCode && g_MyHashCode != 0) {
         int hash = get_HashCode(_this);
@@ -445,12 +396,6 @@ float hook_Missile_GetReloadTime(void* _this) {
 }
 
 bool hook_MissileTrace_CanHit(void* _this, void* defender) {
-    if (_this != nullptr && g_MyHashCode != 0) {
-        int attackerHash = *(int*)((uintptr_t)_this + OFFSET_MISSILETRACE_ATTACKER_HASHCODE_FIELD);
-        if (attackerHash == g_MyHashCode) {
-        *(bool*)((uintptr_t)_this + OFFSET_MISSILETRACE_CAN_REPORT_DAMAGE_FIELD) = true;
-        }
-    }
     if (isAutoDodgeEnabled && defender != nullptr) {
         if (get_HashCode) {
             int targetHash = get_HashCode(defender);
@@ -479,12 +424,6 @@ bool hook_BulletMove_CanHit(void* _this, void* defender) {
 }
 
 void hook_MissileTrace_ApplyDamage(void* _this, void* targetUnitManager) {
-    if (_this != nullptr && g_MyHashCode != 0) {
-        int attackerHash = *(int*)((uintptr_t)_this + OFFSET_MISSILETRACE_ATTACKER_HASHCODE_FIELD);
-        if (attackerHash == g_MyHashCode) {
-            *(bool*)((uintptr_t)_this + OFFSET_MISSILETRACE_CAN_REPORT_DAMAGE_FIELD) = true;
-        }
-    }
     if (orig_MissileTrace_ApplyDamage) {
         orig_MissileTrace_ApplyDamage(_this, targetUnitManager);
     }
@@ -583,9 +522,6 @@ void hook_PlayerPlaneAction_UpdateFlyControllerParams(void* _this) {
     if (_this != nullptr) {
         g_CurrentPlayerPlaneAction = _this;
     }
-    if (isRapidFireEnabled && is_CurrentPlayerPlaneAction(_this)) {
-        reset_MissileFireTimes(_this);
-    }
     if (orig_PlayerPlaneAction_UpdateFlyControllerParams) {
         orig_PlayerPlaneAction_UpdateFlyControllerParams(_this);
     }
@@ -595,9 +531,6 @@ void hook_PlayerPlaneAction_UpdateFlyControllerParams(void* _this) {
 void hook_PlayerPlaneAction_SetUpFlyController(void* _this) {
     if (_this != nullptr) {
         g_CurrentPlayerPlaneAction = _this;
-    }
-    if (isRapidFireEnabled && is_CurrentPlayerPlaneAction(_this)) {
-        g_RapidFireShotsThisFrame = 0;
     }
     if (orig_PlayerPlaneAction_SetUpFlyController) {
         orig_PlayerPlaneAction_SetUpFlyController(_this);
@@ -620,25 +553,18 @@ void init_hooks(uintptr_t base) {
     playerPlaneAction_RefreshMissileAttrValue = (Func_VoidInstance)(base + OFFSET_PLAYERPLANEACTION_REFRESH_MISSILE_ATTR_VALUE);
     
     A64HookFunction((void*)(base + OFFSET_UNITMANAGER_UPDATE), (void*)hook_UnitManager_Update, (void**)&orig_UnitManager_Update);
-    A64HookFunction((void*)(base + OFFSET_PLAYERPLANEACTION_UPDATE), (void*)hook_PlayerPlaneAction_Update, (void**)&orig_PlayerPlaneAction_Update);
     A64HookFunction((void*)(base + OFFSET_UNITACTIONBASE_APPLYDAMAGE), (void*)hook_ApplyDamage, (void**)&orig_ApplyDamage);
     A64HookFunction((void*)(base + OFFSET_CLOUDCONTAINER_APPLYDAMAGEBYLUA), (void*)hook_ApplyDamageByLua, (void**)&orig_ApplyDamageByLua);
     A64HookFunction((void*)(base + OFFSET_PHOTON_PLUGIN_APPLYDAMAGE), (void*)hook_PhotonPlugin_ApplyDamage, (void**)&orig_PhotonPlugin_ApplyDamage);
     A64HookFunction((void*)(base + OFFSET_CHECK_RELOAD_AIR_MISSILE_IDX), (void*)hook_CheckReloadAirMissileIdx, (void**)&orig_CheckReloadAirMissileIdx);
-    A64HookFunction((void*)(base + OFFSET_INTERNAL_FIRE_MISSILE), (void*)hook_InternalFireMissile, (void**)&orig_InternalFireMissile);
-    A64HookFunction((void*)(base + OFFSET_INTERNAL_FIRE_MISSILE_WITH_AIR), (void*)hook_InternalFireMissileWithAirMissile, (void**)&orig_InternalFireMissileWithAirMissile);
-    A64HookFunction((void*)(base + OFFSET_IS_MISSILE_READY), (void*)hook_GetIsMissileReady, (void**)&orig_GetIsMissileReady);
-    A64HookFunction((void*)(base + OFFSET_GET_AIR_MISSILE_TRANSMIT_CNT_ONCE), (void*)hook_GetAirMissileTransmitCntOnce, (void**)&orig_GetAirMissileTransmitCntOnce);
-    A64HookFunction((void*)(base + OFFSET_GET_AIR_MISSILE_CAN_LOCK_CNT_ONCE), (void*)hook_GetAirMissileCanLockCntOnce, (void**)&orig_GetAirMissileCanLockCntOnce);
     A64HookFunction((void*)(base + OFFSET_MISSILE_GET_RELOAD_TIME), (void*)hook_Missile_GetReloadTime, (void**)&orig_Missile_GetReloadTime);
-    A64HookFunction((void*)(base + OFFSET_MISSILE_GET_DAMAGE), (void*)hook_MissileTrace_GetDamage, (void**)&orig_MissileTrace_GetDamage);
     A64HookFunction((void*)(base + OFFSET_MISSILE_TRACE_CAN_HIT), (void*)hook_MissileTrace_CanHit, (void**)&orig_MissileTrace_CanHit);
     A64HookFunction((void*)(base + OFFSET_MISSILE_TRACE_APPLY_DAMAGE), (void*)hook_MissileTrace_ApplyDamage, (void**)&orig_MissileTrace_ApplyDamage);
     A64HookFunction((void*)(base + OFFSET_BULLET_MOVE_CAN_HIT), (void*)hook_BulletMove_CanHit, (void**)&orig_BulletMove_CanHit);
     A64HookFunction((void*)(base + OFFSET_UNITMANAGER_GET_IS_INVINCIBLE), (void*)hook_UnitManager_GetIsInvincible, (void**)&orig_UnitManager_GetIsInvincible);
     A64HookFunction((void*)(base + OFFSET_PLAYERPLANEACTION_UPDATE_FLYCONTROLLER_PARAMS), (void*)hook_PlayerPlaneAction_UpdateFlyControllerParams, (void**)&orig_PlayerPlaneAction_UpdateFlyControllerParams);
     A64HookFunction((void*)(base + OFFSET_PLAYERPLANEACTION_SETUP_FLYCONTROLLER), (void*)hook_PlayerPlaneAction_SetUpFlyController, (void**)&orig_PlayerPlaneAction_SetUpFlyController);
-    
+
     LOGI("[MOD] Hooks Initialized");
 }
 
@@ -788,6 +714,8 @@ MemoryPatch patchConsumeWeapon("ConsumeWeapon", OFFSET_DO_CONSUME_WEAPON);
 MemoryPatch patchCannonCount("CannonCount", OFFSET_CANNON_GET_COUNT);
 MemoryPatch patchMissileCount("MissileCount", OFFSET_MISSILE_GET_COUNT);
 MemoryPatch patchMissileReady("MissileReady", OFFSET_IS_MISSILE_READY);
+MemoryPatch patchAirMissileTransmitCntOnce("AirMissileTransmitCntOnce", OFFSET_GET_AIR_MISSILE_TRANSMIT_CNT_ONCE);
+MemoryPatch patchAirMissileCanLockCntOnce("AirMissileCanLockCntOnce", OFFSET_GET_AIR_MISSILE_CAN_LOCK_CNT_ONCE);
 
 // 4. Aimbot / FOV
 MemoryPatch patchAimbotDistance("AimbotDistance", OFFSET_MISSILE_GET_LOCK_DISTANCE);
@@ -855,7 +783,6 @@ Java_com_on00dev_apexcombatmod_Native_SetGodModeOnline(JNIEnv *env, jclass type,
     // V33: Rapid Fire corrigido para afetar APENAS o jogador
     isRapidFireEnabled.store(isEnabled, std::memory_order_relaxed);
     if (libIl2CppBase == 0) return;
-    g_RapidFireToggleSerial.fetch_add(1, std::memory_order_relaxed);
     
     if (isEnabled) {
         g_RapidFireShotsThisFrame = 0;
@@ -863,11 +790,17 @@ Java_com_on00dev_apexcombatmod_Native_SetGodModeOnline(JNIEnv *env, jclass type,
         g_RapidFireLastFireFrameId = -1;
         g_RapidFireShotsFrameId = -1;
         g_FakeMissileIdx = 1000;
+        patchMissileReady.ApplyTrue(libIl2CppBase);
+        patchAirMissileTransmitCntOnce.ApplyInt999(libIl2CppBase);
+        patchAirMissileCanLockCntOnce.ApplyInt999(libIl2CppBase);
     } else {
         g_RapidFireShotsThisFrame = 0;
         g_RapidFireFrameId = 0;
         g_RapidFireLastFireFrameId = -1;
         g_RapidFireShotsFrameId = -1;
+        patchMissileReady.Restore();
+        patchAirMissileTransmitCntOnce.Restore();
+        patchAirMissileCanLockCntOnce.Restore();
     }
     
     LOGI("[MOD] Rapid Fire: %s", isEnabled ? "ON" : "OFF");
