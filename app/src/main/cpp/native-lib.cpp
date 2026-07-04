@@ -186,6 +186,7 @@ Func_FloatGetter missileProperty_GetDamage = nullptr;
 int g_MyHashCode = 0;
 bool isHitKillEnabled = false;
 std::atomic<bool> isRapidFireEnabled{false};
+std::atomic<int> g_RapidFireRestoreRequest{0};
 bool isAutoDodgeEnabled = false;
 bool isMissileFovEnabled = false;
 bool g_MissileToggle = false;
@@ -301,7 +302,11 @@ void hook_InternalFireMissile(void* _this, int missileType, void* missilePropert
 int hook_CheckReloadAirMissileIdx(void* _this, bool* isLeft) {
     if (isRapidFireEnabled.load(std::memory_order_relaxed) && is_CurrentPlayerPlaneAction(_this)) {
         if (orig_CheckReloadAirMissileIdx) {
-            return orig_CheckReloadAirMissileIdx(_this, isLeft);
+            int idx = orig_CheckReloadAirMissileIdx(_this, isLeft);
+            if (idx >= 0) {
+                bump_MissileFireIds_ForPlayer(_this);
+            }
+            return idx;
         }
     }
     if (orig_CheckReloadAirMissileIdx) return orig_CheckReloadAirMissileIdx(_this, isLeft);
@@ -521,6 +526,17 @@ static void apply_PlaneSpeed_ToAction(void* playerPlaneAction) {
 void hook_PlayerPlaneAction_UpdateFlyControllerParams(void* _this) {
     if (_this != nullptr) {
         g_CurrentPlayerPlaneAction = _this;
+    }
+    if (g_RapidFireRestoreRequest.load(std::memory_order_relaxed) != 0 &&
+        is_CurrentPlayerPlaneAction(_this)) {
+        reset_OffensiveFireIds(_this);
+        if (playerPlaneAction_RefreshMissileAttrValue) {
+            playerPlaneAction_RefreshMissileAttrValue(_this);
+        }
+        if (playerPlaneAction_ReloadMissile) {
+            playerPlaneAction_ReloadMissile(_this);
+        }
+        g_RapidFireRestoreRequest.store(0, std::memory_order_relaxed);
     }
     if (orig_PlayerPlaneAction_UpdateFlyControllerParams) {
         orig_PlayerPlaneAction_UpdateFlyControllerParams(_this);
@@ -801,6 +817,7 @@ Java_com_on00dev_apexcombatmod_Native_SetGodModeOnline(JNIEnv *env, jclass type,
         patchMissileReady.Restore();
         patchAirMissileTransmitCntOnce.Restore();
         patchAirMissileCanLockCntOnce.Restore();
+        g_RapidFireRestoreRequest.store(1, std::memory_order_relaxed);
     }
     
     LOGI("[MOD] Rapid Fire: %s", isEnabled ? "ON" : "OFF");
